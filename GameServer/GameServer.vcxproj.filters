@@ -21,9 +21,15 @@
     <ClCompile Include="UDPmanager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="AccumMoveServer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UDPmanager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AccumMoveServer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

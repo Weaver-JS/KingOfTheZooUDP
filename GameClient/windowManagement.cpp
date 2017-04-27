@@ -13,10 +13,6 @@ void windowManagement::init(float x, float y, std::string chatName)
 	
 
 	main_character = new character(x/2,y/2);
-	if (!font.loadFromFile("courbd.ttf"))
-	{
-		std::cout << "Can't load the font file" << std::endl;
-	}
 	
 	
 	udpManager.initConnection();

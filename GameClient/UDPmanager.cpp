@@ -67,7 +67,7 @@ void UDPmanager::ping(uint16_t x, uint16_t y)
 	ombs_.Write(x, POSITION_BYNARY_LENGTH);
 	ombs_.Write(y, POSITION_BYNARY_LENGTH);
 	sendMessage(ombs_.GetBufferPtr(), IP, PORT, ombs_.GetByteLength());
-	//sf::sleep(sf::milliseconds(200));
+	
 	OutputMemoryBitStream ombs;
 	ombs.Write(PacketType::PT_PING, BINARYPACKETYPELENGTH);
 
