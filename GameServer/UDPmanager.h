@@ -10,10 +10,13 @@
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 800
 #define MAX_PLAYER 2
+
+
 enum PacketType
 {
 	PT_EMPTY,
 	PT_MOV,
+	PT_OKMOVE,
 	PT_HELLO,
 	PT_WELCOME,
 	PT_FULL,
@@ -21,6 +24,7 @@ enum PacketType
 	PT_PLAYER_POSITION,
 	PT_DISCONNECT,
 	PT_SHUTDOWN
+
 };
 class UDPmanager
 {

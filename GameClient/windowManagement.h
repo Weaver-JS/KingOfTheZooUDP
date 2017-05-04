@@ -18,7 +18,7 @@ private:
 	character* main_character;
 	UDPmanager udpManager;
 	sf::RectangleShape separator;
-	std::vector<character*> playerList;
+	std::vector<character> playerList;
 	sf::Clock timer_client;
 	
 

@@ -11,6 +11,7 @@ class PlayerInfo
 
 public:
 	PlayerInfo(sf::IpAddress & ip, unsigned short & port);
+	PlayerInfo();
 	~PlayerInfo();
 
 	const sf::IpAddress & getPlayerIP();

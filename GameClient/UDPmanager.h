@@ -6,17 +6,20 @@
 #include <PlayerInfo.h>
 #include "AccumMovClient.h"
 
+
 #define PORT 50000
 #define BINARYPACKETYPELENGTH 4
 #define POSITION_BYNARY_LENGTH 10
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 800
+#define MAXPLAYERS 2
 #define IP "127.0.0.1"
 
 enum PacketType
 {
 	PT_EMPTY,
 	PT_MOV,
+	PT_OKMOVE,
 	PT_HELLO,
 	PT_WELCOME,
 	PT_FULL,
@@ -30,7 +33,8 @@ class UDPmanager
 {
 private:
 	PlayerInfo* player; //En udp al poseer un socket, lo que guardamos son ip:puerto
-	std::vector<PlayerInfo*> playerList;
+
+	std::vector<PlayerInfo> playerList;
 	int size;
 	sf::UdpSocket socket;
 	bool notConnected;
@@ -43,7 +47,7 @@ public:
 	UDPmanager();
 	~UDPmanager();
 	void initConnection();
-	void ping(uint16_t x, uint16_t y);
+	void ping(int16_t x, int16_t y,int packetID);
 	void readMessage(char*  _message,const size_t & _sizeMessage,sf::IpAddress & ip, unsigned short & port);
 	void recv();
 	void disconnect();

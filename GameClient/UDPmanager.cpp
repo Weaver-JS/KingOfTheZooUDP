@@ -7,6 +7,9 @@ UDPmanager::UDPmanager()
 	notConnected = true;
 	socket.setBlocking(true);
 	disconnected = false;
+	playerList.resize(MAXPLAYERS);
+
+	
 }
 
 
@@ -22,7 +25,7 @@ void UDPmanager::initConnection()
 
 	while (notConnected)
 	{
-		if(client_clock.getElapsedTime() + sf::milliseconds(790)  >= sf::seconds(1.0f))
+		if(client_clock.getElapsedTime() + sf::milliseconds(800)  >= sf::seconds(1.0f))
 		{
 			disconnected = true;
 			notConnected = false;
@@ -32,7 +35,7 @@ void UDPmanager::initConnection()
 		{
 			OutputMemoryBitStream ombs;
 			ombs.Write(PacketType::PT_HELLO, BINARYPACKETYPELENGTH);
-			//sf::sleep(sf::seconds(0.5));
+		
 			if (sendMessage(ombs.GetBufferPtr(), IP, PORT, ombs.GetByteLength()))
 			{
 				sf::IpAddress senderIP;
@@ -58,22 +61,32 @@ void UDPmanager::initConnection()
 	
 }
 
-void UDPmanager::ping(uint16_t x, uint16_t y)
+void UDPmanager::ping(int16_t x, int16_t y, int packetID)
 {
-		OutputMemoryBitStream ombs_;
-		uint16_t id = player->getPlayerID();
-	ombs_.Write(PacketType::PT_PLAYER_POSITION, BINARYPACKETYPELENGTH);
-	ombs_.Write(id, BINARYPACKETYPELENGTH);
-	ombs_.Write(x, POSITION_BYNARY_LENGTH);
-	ombs_.Write(y, POSITION_BYNARY_LENGTH);
-	sendMessage(ombs_.GetBufferPtr(), IP, PORT, ombs_.GetByteLength());
-	
-	OutputMemoryBitStream ombs;
-	ombs.Write(PacketType::PT_PING, BINARYPACKETYPELENGTH);
+	if (x != 0)
+	{
+		if (playerList[player->getPlayerID()].getX() + x > 0 && playerList[player->getPlayerID()].getX() + x < SCREEN_WIDTH)
+		{
+			OutputMemoryBitStream ombs_;
+			uint16_t id = player->getPlayerID();
+			int16_t completedX = x + player->getX();
+			int16_t calcX = x;
+			int16_t packid = packetID;
+			std::cout << "PAQUETE" << std::endl;
+			std::cout << "Completed X : " << completedX << std::endl;
+			std::cout << "CalcX: " << calcX << std::endl;
+			std::cout << "PAQUETE" << std::endl;
+			ombs_.Write(PacketType::PT_MOV, BINARYPACKETYPELENGTH);
+			ombs_.Write(id, BINARYPACKETYPELENGTH);
+			ombs_.Write(packid, POSITION_BYNARY_LENGTH);
+			ombs_.Write(calcX, POSITION_BYNARY_LENGTH);
+			ombs_.Write(completedX, POSITION_BYNARY_LENGTH);
+			ombs_.Write(y, POSITION_BYNARY_LENGTH);
+			sendMessage(ombs_.GetBufferPtr(), IP, PORT, ombs_.GetByteLength());
+		}
+	}
 
-	
 
-	sendMessage(ombs.GetBufferPtr(), IP, PORT, ombs.GetBitLength());
 
 }
 
@@ -101,26 +114,10 @@ void UDPmanager::readMessage(char*  _message, const size_t & _sizeMessage, sf::I
 		imbs.ReadBits(&player->getX() , POSITION_BYNARY_LENGTH);
 		imbs.ReadBits(&player->getY() , POSITION_BYNARY_LENGTH);
 		player->setPlayerID(Id);
-		for (int i = 0; i < player->getPlayerID(); i++)
-		{
-			PlayerInfo * p = new PlayerInfo(ip,port);
-			if (i != player->getPlayerID())
-			{
-			
-				p->getPlayerID() = i;
-				p->getX() = 0;
-				p->getY() = 0;
-				
-			}
-			else
-			{
-				
-				p = player;
-				delete player;
-			}
-			playerList.push_back(p);
-		}
-		playerList.push_back(player);
+		playerList[Id].getX() = player->getX();
+		playerList[Id].getY() = player->getY();
+		playerList[Id].setPlayerID(Id);
+		
 		notConnected = false;
 	}
 		break;
@@ -130,6 +127,16 @@ void UDPmanager::readMessage(char*  _message, const size_t & _sizeMessage, sf::I
 		
 		//disconnected = true;
 		break;
+	case PT_OKMOVE:
+	{
+		uint16_t Id = 0,x = 0;
+		imbs.ReadBits(&Id, BINARYPACKETYPELENGTH);
+		imbs.ReadBits(&x, POSITION_BYNARY_LENGTH);
+		playerList[Id].getX() = x;
+		
+		
+	}
+	break;
 	case PT_FULL:
 		disconnected = true;
 		break;
@@ -142,9 +149,9 @@ void UDPmanager::readMessage(char*  _message, const size_t & _sizeMessage, sf::I
 		}
 		int id = -1;
 		imbs.ReadBits(&id, BINARYPACKETYPELENGTH);
-		imbs.ReadBits(&playerList[id]->getX(), POSITION_BYNARY_LENGTH);
-		imbs.ReadBits(&playerList[id]->getY(), POSITION_BYNARY_LENGTH);
-	//	sendMessage((char*)imbs.GetBufferPtr(), ip, port, sizeof(imbs.GetBufferPtr()));
+		imbs.ReadBits(&playerList[id].getX(), POSITION_BYNARY_LENGTH);
+		imbs.ReadBits(&playerList[id].getY(), POSITION_BYNARY_LENGTH);
+	
 	}
 		break;
 	case PT_SHUTDOWN:
@@ -158,22 +165,10 @@ void UDPmanager::readMessage(char*  _message, const size_t & _sizeMessage, sf::I
 	{
 		int ID = 1;
 		imbs.ReadBits(&ID, BINARYPACKETYPELENGTH);
-		
-		if (ID >= playerList.size())
-		{
-			PlayerInfo* p = new PlayerInfo(ip, port);
-			imbs.ReadBits(&p->getX(), POSITION_BYNARY_LENGTH);
-			imbs.ReadBits(&p->getY(), POSITION_BYNARY_LENGTH);
-			uint16_t id = ID;
-			p->setPlayerID(id);
-			playerList.push_back(p);
-		}
-		else
-		{
-			imbs.ReadBits(&playerList[ID]->getX(), POSITION_BYNARY_LENGTH);
-			imbs.ReadBits(&playerList[ID]->getY(), POSITION_BYNARY_LENGTH);
+		imbs.ReadBits(&playerList[ID].getX(), POSITION_BYNARY_LENGTH);
+		imbs.ReadBits(&playerList[ID].getY(), POSITION_BYNARY_LENGTH);
 
-		}
+		
 	}
 		break;
 	default:
@@ -188,6 +183,7 @@ void UDPmanager::recv()
 {
 	while (!disconnected)
 	{
+		
 		sf::IpAddress senderIP;
 		unsigned short senderPort;
 		sf::Packet packet;
@@ -196,13 +192,12 @@ void UDPmanager::recv()
 			readMessage((char*)packet.getData(), packet.getDataSize(), senderIP, senderPort);
 
 		}
-	//	sf::sleep(sf::milliseconds(200));
+	//	
 		
 	}
 }
 bool UDPmanager::sendMessage(char * message, sf::IpAddress ip, unsigned short port,uint32_t sizeBuffer)
 {
-	//sf::sleep(sf::milliseconds(200));
 	
 		sf::Packet packet;
 		packet.append(message, sizeBuffer);
@@ -233,7 +228,7 @@ PlayerInfo & UDPmanager::getPlayer()
 PlayerInfo & UDPmanager::getPlayer(int i)
 {
 
-		return *playerList[i];
+		return playerList[i];
 	
 }
 
@@ -274,7 +269,7 @@ void UDPmanager::sendAccumList(std::vector<movement> & movlist)
 	{
 		OutputMemoryBitStream ombs_;
 		ombs_.Write(PT_MOV, BINARYPACKETYPELENGTH);
-		ombs_.Write(movlist[i].idPacket, POSITION_BYNARY_LENGTH);
+		//ombs_.Write(movlist[i], POSITION_BYNARY_LENGTH);
 		ombs_.Write(movlist[i].move, MOVEMENTBITS);
 		sendMessage(ombs_.GetBufferPtr(), IP, PORT, ombs_.GetBitLength());
 

@@ -6,7 +6,7 @@ UDPmanager::UDPmanager()
 {
 	abort = false;
 	isConnected = true;
-	socket.setBlocking(false);
+	socket.setBlocking(true);
 	server_clock.restart();
 }
 
@@ -41,14 +41,14 @@ void UDPmanager::initConnection()
 		sf::IpAddress senderIP;
 		unsigned short senderPort;
 		sf::Packet packet;
-	
+		//sf::sleep(sf::milliseconds(200));
 			if (socket.receive(packet, senderIP, senderPort) == sf::Socket::Done)
 			{
 				readMessage((char*)packet.getData(), packet.getDataSize(), senderIP, senderPort);
 			}
 			server_clock.restart();
 		
-			sf::sleep(sf::milliseconds(200));
+			
 	}
 }
 
@@ -98,16 +98,16 @@ void UDPmanager::readMessage(char*  _message, const size_t & _sizeMessage, sf::I
 {
 	//ESTA DEMASIADO ENFOCADO A SERVIDOR
 
-	
+
 	InputMemoryBitStream imbs((char*)_message, _sizeMessage * 8);
 	PacketType pt = PacketType::PT_EMPTY;
 	std::string receivedString;
 	imbs.Read(&pt, BINARYPACKETYPELENGTH);
 
-	
-	
 
-	
+
+
+
 	switch (pt)
 	{
 	case PT_EMPTY:
@@ -157,14 +157,14 @@ void UDPmanager::readMessage(char*  _message, const size_t & _sizeMessage, sf::I
 				y = 0;
 				break;
 			}
-			/*x = rand() % SCREEN_WIDTH;
-			y = rand() % SCREEN_HEIGHT + 200;*/
-			id = playerList.size() - 1;
 			
+			id = playerList.size() - 1;
+			uint16_t idpararetrasados = id;
 			playerList[playerList.size() - 1]->getX() = x;
 			playerList[playerList.size() - 1]->getY() = y;
+			playerList[playerList.size() - 1]->setPlayerID(idpararetrasados);
 
-			
+
 			ombs.Write(id, BINARYPACKETYPELENGTH);
 			ombs.Write(x, POSITION_BYNARY_LENGTH);
 			ombs.Write(y, POSITION_BYNARY_LENGTH);
@@ -172,7 +172,7 @@ void UDPmanager::readMessage(char*  _message, const size_t & _sizeMessage, sf::I
 		}
 
 	}
-		break;
+	break;
 	case PT_PLAYER_POSITION:
 	{
 		uint16_t id = 100;
@@ -186,56 +186,73 @@ void UDPmanager::readMessage(char*  _message, const size_t & _sizeMessage, sf::I
 			playerList[id]->getY() = y;
 		}
 	}
-		break;
-	case PT_PING:
+	break;
+	case PT_MOV:
+	{
+		uint16_t id = 100;
+		uint16_t packetID;
+		int16_t diff = 0, x = 0;
+		imbs.Read(&id, BINARYPACKETYPELENGTH);
+		int p = sizeof(packetID);
+		imbs.Read(&packetID, POSITION_BYNARY_LENGTH);
+		imbs.Read(&diff, POSITION_BYNARY_LENGTH);
+		imbs.Read(&x, POSITION_BYNARY_LENGTH);
+		imbs.Read(&playerList[id]->getY(), POSITION_BYNARY_LENGTH);
+		std::cout << "PAQUETE DE MOVIMIENTO Player: " << id << "Paquete id: " << packetID << "Diferencia: " << diff << "x: " << x << std::endl;
+
+		int16_t xCalc = playerList[id]->getX();
 		
-		
+			playerList[id]->getX() += diff;
+			std::cout << "bien" << std::endl;
+			OutputMemoryBitStream ombs;
+			ombs.Write(PacketType::PT_OKMOVE, BINARYPACKETYPELENGTH);
+			ombs.Write(id, BINARYPACKETYPELENGTH);
+			uint16_t sX = playerList[id]->getX() ;
+			ombs.Write(sX, POSITION_BYNARY_LENGTH);
 			for (int i = 0; i < playerList.size(); i++)
 			{
-				
-					OutputMemoryBitStream ombs;
-
-					ombs.Write(PacketType::PT_PLAYER_POSITION, BINARYPACKETYPELENGTH);
-					ombs.Write(i, BINARYPACKETYPELENGTH);
-					ombs.Write(playerList[i]->getX(), POSITION_BYNARY_LENGTH);
-					ombs.Write(playerList[i]->getY(), POSITION_BYNARY_LENGTH);
-					
-					sendMessage(ombs.GetBufferPtr(), ip, port, ombs.GetByteLength());
-					sf::sleep(sf::milliseconds(200));
-
-
+				sf::IpAddress ipD = playerList[i]->getPlayerIP();
+				unsigned short portD = playerList[i]->getPlayerPort();
+				sendMessage(ombs.GetBufferPtr(), ipD, portD, ombs.GetByteLength());
 			}
-		
+	
+
+	}
+		break;
+	case PT_PING:
+
+
+		for (int i = 0; i < playerList.size(); i++)
+		{
+
+			OutputMemoryBitStream ombs;
+
+			ombs.Write(PacketType::PT_PLAYER_POSITION, BINARYPACKETYPELENGTH);
+			ombs.Write(i, BINARYPACKETYPELENGTH);
+			ombs.Write(playerList[i]->getX(), POSITION_BYNARY_LENGTH);
+			ombs.Write(playerList[i]->getY(), POSITION_BYNARY_LENGTH);
+
+			sendMessage(ombs.GetBufferPtr(), ip, port, ombs.GetByteLength());
+			sf::sleep(sf::milliseconds(200));
+
+
+		}
+
 		break;
 	case PT_DISCONNECT:
 	{
 		std::cout << "Solcitud de desconexion de Cliente: " << ip << "Con puerto: " << port << std::endl;
-		OutputMemoryBitStream ombs;
-		ombs.Write(PacketType::PT_DISCONNECT, BINARYPACKETYPELENGTH);
-		sendMessage(ombs.GetBufferPtr(), ip, port, ombs.GetByteLength());
-			int p = port;
-			for (int i = 0; i < playerList.size(); i++)
-			{
-				if (playerList[i]->getPlayerPort() == port)
-				{
-					playerList.erase(playerList.begin() + i);
-					break;
-				}
-			}
+		
+		serverDisconnection();
 
-
-		}
-	
-	
-
-	
 		break;
 	default:
 		std::cout << "Tipo de paquete no identificado, por favor revisa lo que se envía." << std::endl;
 
 	}
 
-	
+
+	}
 }
 
 
